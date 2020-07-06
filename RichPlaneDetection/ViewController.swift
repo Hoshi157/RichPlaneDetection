@@ -7,7 +7,6 @@
 //
 
 import UIKit
-import SceneKit
 import ARKit
 
 class ViewController: UIViewController, ARSCNViewDelegate {
@@ -22,6 +21,9 @@ class ViewController: UIViewController, ARSCNViewDelegate {
         
         // Show statistics such as fps and timing information
         sceneView.showsStatistics = true
+        sceneView.debugOptions = SCNDebugOptions.showFeaturePoints
+        
+        sceneView.autoenablesDefaultLighting = true
         
         // Create a new scene
         let scene = SCNScene(named: "art.scnassets/ship.scn")!
