@@ -6,72 +6,79 @@
 //  Copyright © 2020 福山帆士. All rights reserved.
 //
 
-import UIKit
 import ARKit
 
-class ViewController: UIViewController, ARSCNViewDelegate {
-
+class ViewController: UIViewController {
+    
     @IBOutlet var sceneView: ARSCNView!
+    
+    private let device = MTLCreateSystemDefaultDevice()! // Metal
     
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        // Set the view's delegate
         sceneView.delegate = self
-        
-        // Show statistics such as fps and timing information
-        sceneView.showsStatistics = true
-        sceneView.debugOptions = SCNDebugOptions.showFeaturePoints
-        
-        sceneView.autoenablesDefaultLighting = true
-        
-        // Create a new scene
-        let scene = SCNScene(named: "art.scnassets/ship.scn")!
-        
-        // Set the scene to the view
-        sceneView.scene = scene
+        sceneView.scene = SCNScene()
+        sceneView.debugOptions = [ARSCNDebugOptions.showFeaturePoints, SCNDebugOptions.showWireframe]
     }
     
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         
-        // Create a session configuration
         let configuration = ARWorldTrackingConfiguration()
-
-        // Run the view's session
+        configuration.planeDetection = [.vertical, .horizontal]
         sceneView.session.run(configuration)
     }
     
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
         
-        // Pause the view's session
         sceneView.session.pause()
     }
+    
+}
 
-    // MARK: - ARSCNViewDelegate
+extension ViewController: ARSCNViewDelegate {
     
-/*
-    // Override to create and configure nodes for anchors added to the view's session.
-    func renderer(_ renderer: SCNSceneRenderer, nodeFor anchor: ARAnchor) -> SCNNode? {
-        let node = SCNNode()
-     
-        return node
+    // 平面検出
+    func renderer(_ renderer: SCNSceneRenderer, didAdd node: SCNNode, for anchor: ARAnchor) {
+        guard let planeAnchor = anchor as? ARPlaneAnchor else { // 平面アンカー
+            return
+        }
+        // animation
+        if #available(iOS 11.3, *) {
+            let planeGeometry = ARSCNPlaneGeometry(device: device)! // メッシュ情報を保持するクラス(Metalのみ)
+            planeGeometry.update(from: planeAnchor.geometry)
+            
+            let color: Any = planeAnchor.alignment == .horizontal ? UIColor.blue.withAlphaComponent(0.8) : UIColor.green.withAlphaComponent(0.8)
+            
+            guard let material = planeGeometry.materials.first else {
+                fatalError()
+            }
+            if let program = color as? SCNProgram {
+                material.program = program
+            }else {
+                material.diffuse.contents = color
+            }
+            let planeNode = SCNNode(geometry: planeGeometry)
+            DispatchQueue.main.async {
+                node.addChildNode(planeNode)
+            }
+        }
     }
-*/
     
-    func session(_ session: ARSession, didFailWithError error: Error) {
-        // Present an error message to the user
-        
-    }
-    
-    func sessionWasInterrupted(_ session: ARSession) {
-        // Inform the user that the session has been interrupted, for example, by presenting an overlay
-        
-    }
-    
-    func sessionInterruptionEnded(_ session: ARSession) {
-        // Reset tracking and/or remove existing anchors if consistent tracking is required
+    // 平面更新
+    func renderer(_ renderer: SCNSceneRenderer, didUpdate node: SCNNode, for anchor: ARAnchor) {
+        guard let planeAnchor = anchor as? ARPlaneAnchor else {
+            return
+        }
+        for childNode in node.childNodes {
+            if childNode.geometry as? ARSCNPlaneGeometry != nil {
+                if let planeGeometry = childNode.geometry as? ARSCNPlaneGeometry {
+                    planeGeometry.update(from: planeAnchor.geometry)
+                }
+            }
+        }
         
     }
 }
