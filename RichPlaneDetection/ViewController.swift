@@ -26,6 +26,7 @@ class ViewController: UIViewController {
         super.viewWillAppear(animated)
         
         let configuration = ARWorldTrackingConfiguration()
+        // 垂直、水平を有効化
         configuration.planeDetection = [.vertical, .horizontal]
         sceneView.session.run(configuration)
     }
@@ -47,19 +48,21 @@ extension ViewController: ARSCNViewDelegate {
         }
         // animation
         if #available(iOS 11.3, *) {
-            let planeGeometry = ARSCNPlaneGeometry(device: device)! // メッシュ情報を保持するクラス(Metalのみ)
+            let planeGeometry = ARSCNPlaneGeometry(device: device)! // メッシュ情報を保持する(Metalのみ)
             planeGeometry.update(from: planeAnchor.geometry)
-            
+            // 水平か垂直かで色を変更する
             let color: Any = planeAnchor.alignment == .horizontal ? UIColor.blue.withAlphaComponent(0.8) : UIColor.green.withAlphaComponent(0.8)
-            
+            // geometryの配列から一番前を取得
             guard let material = planeGeometry.materials.first else {
                 fatalError()
             }
+            // colorを再度キャストして追加
             if let program = color as? SCNProgram {
                 material.program = program
             }else {
                 material.diffuse.contents = color
             }
+            // Nodeに追加
             let planeNode = SCNNode(geometry: planeGeometry)
             DispatchQueue.main.async {
                 node.addChildNode(planeNode)
@@ -72,11 +75,10 @@ extension ViewController: ARSCNViewDelegate {
         guard let planeAnchor = anchor as? ARPlaneAnchor else {
             return
         }
-        for childNode in node.childNodes {
+        for childNode in node.childNodes { // nodeを取得
             if childNode.geometry as? ARSCNPlaneGeometry != nil {
-                if let planeGeometry = childNode.geometry as? ARSCNPlaneGeometry {
-                    planeGeometry.update(from: planeAnchor.geometry)
-                }
+                let planeGeometry = childNode.geometry as! ARSCNPlaneGeometry
+                planeGeometry.update(from: planeAnchor.geometry) // updeta
             }
         }
         
